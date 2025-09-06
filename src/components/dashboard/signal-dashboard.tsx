@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSignalStore } from '@/store/signal-store';
 import { SignalFilters } from '@/components/filters/signal-filters';
 import { VirtualizedSignalTable } from '@/components/table/virtualized-signal-table';
@@ -152,7 +152,9 @@ export function SignalDashboard() {
       </div>
 
       {/* Filters */}
-      <SignalFilters />
+      <Suspense fallback={<div className="p-4 bg-white border rounded-lg"><Skeleton className="h-32 w-full" /></div>}>
+        <SignalFilters />
+      </Suspense>
 
       {/* Table */}
       <div className="bg-white rounded-lg border shadow-sm">
