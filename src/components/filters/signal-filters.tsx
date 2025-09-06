@@ -7,7 +7,7 @@ import { MultiSelectFilter } from './multi-select-filter';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import { SIGNAL_TYPES, URGENCY_LEVELS, COMPANY_SIZES, INDUSTRIES } from '@/types/signal';
+import { SIGNAL_TYPES, URGENCY_LEVELS, COMPANY_SIZES, INDUSTRIES, FilterState } from '@/types/signal';
 
 export function SignalFilters() {
   const { filters, setFilters, clearFilters, setFiltersFromURL } = useSignalStore();
@@ -30,7 +30,7 @@ export function SignalFilters() {
   }, [searchParams, setFiltersFromURL]);
 
   // Update URL when filters change
-  const updateURL = (newFilters: any) => {
+  const updateURL = (newFilters: Partial<FilterState>) => {
     const params = new URLSearchParams(searchParams);
     
     if (newFilters.searchQuery) {
@@ -39,25 +39,25 @@ export function SignalFilters() {
       params.delete('search');
     }
     
-    if (newFilters.signalTypes?.length > 0) {
+    if (newFilters.signalTypes && newFilters.signalTypes.length > 0) {
       params.set('signalTypes', newFilters.signalTypes.join(','));
     } else {
       params.delete('signalTypes');
     }
     
-    if (newFilters.urgencies?.length > 0) {
+    if (newFilters.urgencies && newFilters.urgencies.length > 0) {
       params.set('urgencies', newFilters.urgencies.join(','));
     } else {
       params.delete('urgencies');
     }
     
-    if (newFilters.industries?.length > 0) {
+    if (newFilters.industries && newFilters.industries.length > 0) {
       params.set('industries', newFilters.industries.join(','));
     } else {
       params.delete('industries');
     }
     
-    if (newFilters.companySizes?.length > 0) {
+    if (newFilters.companySizes && newFilters.companySizes.length > 0) {
       params.set('companySizes', newFilters.companySizes.join(','));
     } else {
       params.delete('companySizes');

@@ -20,14 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -37,10 +29,9 @@ import {
 import { 
   getSignalTypeLabel, 
   getUrgencyLabel, 
-  getUrgencyColor, 
   getCompanySizeLabel 
 } from '@/lib/data-generator';
-import { exportSignals, getExportStats, ExportOptions } from '@/lib/export-utils';
+import { exportSignals } from '@/lib/export-utils';
 import { useSignalStore } from '@/store/signal-store';
 import { 
   Clock, 
@@ -51,7 +42,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Search,
-  Filter,
   MoreHorizontal,
   Download,
   FileSpreadsheet,
@@ -82,7 +72,7 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
       try {
         const parsedSort = JSON.parse(sortParam);
         setSorting(parsedSort);
-      } catch (e) {
+      } catch {
         console.warn('Invalid sort parameter in URL');
       }
     }
@@ -93,7 +83,7 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
       try {
         const parsedFilters = JSON.parse(filtersParam);
         setColumnFilters(parsedFilters);
-      } catch (e) {
+      } catch {
         console.warn('Invalid filters parameter in URL');
       }
     }
@@ -104,7 +94,7 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
       try {
         const parsedVisibility = JSON.parse(visibilityParam);
         setColumnVisibility(parsedVisibility);
-      } catch (e) {
+      } catch {
         console.warn('Invalid visibility parameter in URL');
       }
     }

@@ -23,8 +23,7 @@ export function SignalDashboard() {
     isLoading, 
     error, 
     initializeSignals, 
-    addNewSignal,
-    setError 
+    addNewSignal
   } = useSignalStore();
   
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);

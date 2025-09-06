@@ -52,7 +52,7 @@ export function exportSignals(
   }
 }
 
-function exportToCSV(data: any[], filename: string) {
+function exportToCSV(data: Record<string, unknown>[], filename: string) {
   const headers = Object.keys(data[0] || {});
   const csvContent = [
     headers.join(','),
@@ -69,7 +69,7 @@ function exportToCSV(data: any[], filename: string) {
   saveAs(blob, filename);
 }
 
-function exportToExcel(data: any[], filename: string) {
+function exportToExcel(data: Record<string, unknown>[], filename: string) {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   
