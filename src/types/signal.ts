@@ -68,3 +68,58 @@ export const INDUSTRIES = [
   'Telecommunications',
   'Transportation',
 ] as const;
+
+export type Persona = 'SDR' | 'AE' | 'CSM';
+
+export interface PersonaFilters {
+  signalTypes: string[];
+  urgencies: string[];
+  industries: string[];
+  companySizes: string[];
+  searchQuery?: string;
+  titleKeywords?: string[];
+  companyList?: string[];
+}
+
+export const PERSONA_FILTERS: Record<Persona, PersonaFilters> = {
+  SDR: {
+    signalTypes: ['hiring', 'intent'],
+    urgencies: ['high'],
+    industries: [],
+    companySizes: ['51-200'],
+    searchQuery: '',
+  },
+  AE: {
+    signalTypes: ['funding'],
+    urgencies: [],
+    industries: [],
+    companySizes: ['201-1000', '1000+'],
+    searchQuery: '',
+    titleKeywords: ['VP', 'Director', 'C-Level', 'Chief'],
+  },
+  CSM: {
+    signalTypes: ['job_change', 'tech_adoption'],
+    urgencies: [],
+    industries: [],
+    companySizes: [],
+    searchQuery: '',
+    companyList: [
+      'Acme Corp',
+      'TechFlow Inc',
+      'DataSync Solutions',
+      'CloudVault Systems',
+      'InnovateLab',
+      'ScaleUp Technologies',
+      'NextGen Software',
+      'ProActive Solutions',
+      'SmartBridge Corp',
+      'FutureWorks Inc',
+    ],
+  },
+};
+
+export const PERSONA_OPTIONS = [
+  { value: 'SDR', label: 'SDR', description: 'Sales Development Rep' },
+  { value: 'AE', label: 'AE', description: 'Account Executive' },
+  { value: 'CSM', label: 'CSM', description: 'Customer Success Manager' },
+] as const;

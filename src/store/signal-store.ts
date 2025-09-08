@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Signal, FilterState } from '@/types/signal';
+import { Signal, FilterState, Persona, PERSONA_FILTERS } from '@/types/signal';
 import { generateSignals, generateRandomSignal } from '@/lib/data-generator';
 
 interface SignalStore {
@@ -8,6 +8,8 @@ interface SignalStore {
   filters: FilterState;
   isLoading: boolean;
   error: string | null;
+  selectedPersona: Persona;
+  isPersonaMode: boolean;
   
   // Actions
   initializeSignals: (count?: number) => void;
@@ -20,6 +22,9 @@ interface SignalStore {
   markSignalAsProcessed: (id: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setPersona: (persona: Persona) => void;
+  applyPersonaFilters: (persona: Persona) => void;
+  togglePersonaMode: () => void;
 }
 
 const initialFilters: FilterState = {
@@ -36,6 +41,8 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
   filters: initialFilters,
   isLoading: false,
   error: null,
+  selectedPersona: 'SDR',
+  isPersonaMode: true,
 
   initializeSignals: (count = 10000) => {
     set({ isLoading: true, error: null });
@@ -112,7 +119,7 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
   },
 
   applyFilters: () => {
-    const { signals, filters } = get();
+    const { signals, filters, selectedPersona, isPersonaMode } = get();
     
     // Safety check for signals array
     if (!signals || !Array.isArray(signals)) {
@@ -161,6 +168,27 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
       );
     }
 
+    // Apply persona-specific filters if in persona mode
+    if (isPersonaMode) {
+      const personaFilters = PERSONA_FILTERS[selectedPersona];
+      
+      // Apply title keywords filter for AE persona
+      if (personaFilters.titleKeywords && personaFilters.titleKeywords.length > 0) {
+        filtered = filtered.filter(signal =>
+          personaFilters.titleKeywords!.some(keyword =>
+            signal.title.toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
+      }
+      
+      // Apply company list filter for CSM persona
+      if (personaFilters.companyList && personaFilters.companyList.length > 0) {
+        filtered = filtered.filter(signal =>
+          personaFilters.companyList!.includes(signal.company)
+        );
+      }
+    }
+
     set({ filteredSignals: filtered });
   },
 
@@ -174,5 +202,39 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
 
   setError: (error: string | null) => {
     set({ error });
+  },
+
+  setPersona: (persona: Persona) => {
+    set({ selectedPersona: persona });
+    get().applyPersonaFilters(persona);
+  },
+
+  applyPersonaFilters: (persona: Persona) => {
+    const personaFilters = PERSONA_FILTERS[persona];
+    const newFilters: FilterState = {
+      signalTypes: personaFilters.signalTypes,
+      urgencies: personaFilters.urgencies,
+      industries: personaFilters.industries,
+      companySizes: personaFilters.companySizes,
+      searchQuery: personaFilters.searchQuery || '',
+    };
+    
+    set({ filters: newFilters });
+    get().applyFilters();
+  },
+
+  togglePersonaMode: () => {
+    const { isPersonaMode, selectedPersona } = get();
+    const newPersonaMode = !isPersonaMode;
+    
+    set({ isPersonaMode: newPersonaMode });
+    
+    if (newPersonaMode) {
+      // Reapply persona filters when enabling persona mode
+      get().applyPersonaFilters(selectedPersona);
+    } else {
+      // Clear filters when disabling persona mode
+      get().clearFilters();
+    }
   },
 }));

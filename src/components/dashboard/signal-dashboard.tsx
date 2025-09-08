@@ -4,6 +4,9 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSignalStore } from '@/store/signal-store';
 import { SignalFilters } from '@/components/filters/signal-filters';
 import { VirtualizedSignalTable } from '@/components/table/virtualized-signal-table';
+import { PersonaSwitcher } from './persona-switcher';
+import { PersonaSummary } from './persona-summary';
+import { PersonaFilterChips } from './persona-filter-chips';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +26,10 @@ export function SignalDashboard() {
     isLoading, 
     error, 
     initializeSignals, 
-    addNewSignal
+    addNewSignal,
+    selectedPersona,
+    isPersonaMode,
+    applyPersonaFilters
   } = useSignalStore();
   
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
@@ -32,6 +38,13 @@ export function SignalDashboard() {
   useEffect(() => {
     initializeSignals(10000);
   }, [initializeSignals]);
+
+  // Apply default persona filters when signals are loaded
+  useEffect(() => {
+    if (signals && signals.length > 0 && isPersonaMode) {
+      applyPersonaFilters(selectedPersona);
+    }
+  }, [signals, isPersonaMode, selectedPersona, applyPersonaFilters]);
 
   // Real-time updates
   useEffect(() => {
@@ -94,6 +107,15 @@ export function SignalDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Persona Switcher */}
+      <PersonaSwitcher />
+
+      {/* Persona Summary */}
+      <PersonaSummary />
+
+      {/* Persona Filter Chips */}
+      <PersonaFilterChips />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
