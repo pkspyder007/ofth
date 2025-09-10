@@ -2,14 +2,18 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSignalStore } from '@/store/signal-store';
+import { Signal } from '@/types/signal';
 import { SignalFilters } from '@/components/filters/signal-filters';
 import { VirtualizedSignalTable } from '@/components/table/virtualized-signal-table';
 import { PersonaSwitcher } from './persona-switcher';
 import { PersonaSummary } from './persona-summary';
 import { PersonaFilterChips } from './persona-filter-chips';
+import { SignalLoadingModal } from './signal-loading-modal';
+import { MessageModal } from './message-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { 
   Activity, 
   Users, 
@@ -29,10 +33,14 @@ export function SignalDashboard() {
     addNewSignal,
     selectedPersona,
     isPersonaMode,
-    applyPersonaFilters
+    applyPersonaFilters,
+    isAddingSignal
   } = useSignalStore();
   
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedSignalsForMessage, setSelectedSignalsForMessage] = useState<Signal[]>([]);
 
   // Initialize signals on mount
   useEffect(() => {
@@ -56,6 +64,22 @@ export function SignalDashboard() {
 
     return () => clearInterval(interval);
   }, [addNewSignal, isRealTimeEnabled]);
+
+  // Handle manual signal addition
+  const handleAddSignal = async () => {
+    setShowLoadingModal(true);
+    try {
+      await addNewSignal();
+    } finally {
+      setShowLoadingModal(false);
+    }
+  };
+
+  // Handle sending messages to selected signals
+  const handleSendMessage = (selectedSignals: Signal[]) => {
+    setSelectedSignalsForMessage(selectedSignals);
+    setShowMessageModal(true);
+  };
 
   const stats = {
     total: signals?.length || 0,
@@ -99,11 +123,12 @@ export function SignalDashboard() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => addNewSignal()}
+            onClick={handleAddSignal}
+            disabled={isAddingSignal}
             className="flex items-center space-x-2"
           >
-            <RefreshCw className="h-4 w-4" />
-            <span>Add Signal</span>
+            <RefreshCw className={cn("h-4 w-4", isAddingSignal && "animate-spin")} />
+            <span>{isAddingSignal ? 'Adding...' : 'Add Signal'}</span>
           </Button>
         </div>
       </div>
@@ -211,9 +236,27 @@ export function SignalDashboard() {
             </div>
           </div>
         ) : (
-          <VirtualizedSignalTable data={filteredSignals || []} />
+          <VirtualizedSignalTable 
+            data={filteredSignals || []} 
+            onSendMessage={handleSendMessage}
+          />
         )}
       </div>
+
+      {/* Loading Modal */}
+      <SignalLoadingModal 
+        isOpen={showLoadingModal}
+        onClose={() => setShowLoadingModal(false)}
+        persona={selectedPersona}
+      />
+
+      {/* Message Modal */}
+      <MessageModal 
+        isOpen={showMessageModal}
+        onClose={() => setShowMessageModal(false)}
+        selectedSignals={selectedSignalsForMessage}
+        persona={selectedPersona}
+      />
     </div>
   );
 }

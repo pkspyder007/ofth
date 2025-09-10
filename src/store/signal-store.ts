@@ -10,10 +10,11 @@ interface SignalStore {
   error: string | null;
   selectedPersona: Persona;
   isPersonaMode: boolean;
+  isAddingSignal: boolean;
   
   // Actions
   initializeSignals: (count?: number) => void;
-  addNewSignal: () => void;
+  addNewSignal: () => Promise<void>;
   updateSignal: (id: string, updates: Partial<Signal>) => void;
   setFilters: (filters: Partial<FilterState>) => void;
   setFiltersFromURL: (filters: Partial<FilterState>) => void;
@@ -25,6 +26,8 @@ interface SignalStore {
   setPersona: (persona: Persona) => void;
   applyPersonaFilters: (persona: Persona) => void;
   togglePersonaMode: () => void;
+  setAddingSignal: (adding: boolean) => void;
+  bulkDeleteSignals: (signalIds: string[]) => void;
 }
 
 const initialFilters: FilterState = {
@@ -43,6 +46,7 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
   error: null,
   selectedPersona: 'SDR',
   isPersonaMode: true,
+  isAddingSignal: false,
 
   initializeSignals: (count = 10000) => {
     set({ isLoading: true, error: null });
@@ -69,25 +73,39 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
     }
   },
 
-  addNewSignal: () => {
-    const newSignal = generateRandomSignal();
-    newSignal.isNew = true;
+  addNewSignal: async () => {
+    set({ isAddingSignal: true, error: null });
     
-    set((state) => {
-      const updatedSignals = [newSignal, ...state.signals];
-      return { signals: updatedSignals };
-    });
-    
-    get().applyFilters();
-    
-    // Remove the "new" flag after 5 seconds
-    setTimeout(() => {
-      set((state) => ({
-        signals: state.signals.map(signal => 
-          signal.id === newSignal.id ? { ...signal, isNew: false } : signal
-        )
-      }));
-    }, 5000);
+    try {
+      // Simulate API call delay (3-5 seconds)
+      const delay = 3000 + Math.random() * 2000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      const newSignal = generateRandomSignal();
+      newSignal.isNew = true;
+      
+      set((state) => {
+        const updatedSignals = [newSignal, ...state.signals];
+        return { signals: updatedSignals, isAddingSignal: false };
+      });
+      
+      get().applyFilters();
+      
+      // Remove the "new" flag after 5 seconds
+      setTimeout(() => {
+        set((state) => ({
+          signals: state.signals.map(signal => 
+            signal.id === newSignal.id ? { ...signal, isNew: false } : signal
+          )
+        }));
+      }, 5000);
+    } catch (error) {
+      console.error('Error adding new signal:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to add signal',
+        isAddingSignal: false 
+      });
+    }
   },
 
   updateSignal: (id: string, updates: Partial<Signal>) => {
@@ -236,5 +254,16 @@ export const useSignalStore = create<SignalStore>((set, get) => ({
       // Clear filters when disabling persona mode
       get().clearFilters();
     }
+  },
+
+  setAddingSignal: (adding: boolean) => {
+    set({ isAddingSignal: adding });
+  },
+
+  bulkDeleteSignals: (signalIds: string[]) => {
+    set((state) => ({
+      signals: state.signals.filter(signal => !signalIds.includes(signal.id))
+    }));
+    get().applyFilters();
   },
 }));

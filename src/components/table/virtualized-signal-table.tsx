@@ -45,15 +45,17 @@ import {
   MoreHorizontal,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 
 interface DataTableProps {
   data: Signal[];
+  onSendMessage?: (selectedSignals: Signal[]) => void;
 }
 
-export function VirtualizedSignalTable({ data }: DataTableProps) {
-  const { markSignalAsProcessed } = useSignalStore();
+export function VirtualizedSignalTable({ data, onSendMessage }: DataTableProps) {
+  const { markSignalAsProcessed, bulkDeleteSignals } = useSignalStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -140,10 +142,14 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
     const selectedIds = Object.keys(rowSelection);
     if (selectedIds.length === 0) return;
 
-    // Simulate bulk processing
-    for (const id of selectedIds) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      markSignalAsProcessed(id);
+    // Confirm processing
+    if (window.confirm(`Are you sure you want to process ${selectedIds.length} signal(s)?`)) {
+      // Simulate bulk processing
+      for (const id of selectedIds) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        markSignalAsProcessed(id);
+      }
+      setRowSelection({}); // Clear selection after processing
     }
   }, [rowSelection, markSignalAsProcessed]);
 
@@ -151,10 +157,30 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
     const selectedIds = Object.keys(rowSelection);
     if (selectedIds.length === 0) return;
 
-    // Remove selected signals from the store
-    // This would need to be added to the store
-    console.log('Bulk delete:', selectedIds);
-  }, [rowSelection]);
+    // Confirm deletion
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} signal(s)?`)) {
+      bulkDeleteSignals(selectedIds);
+      setRowSelection({}); // Clear selection after deletion
+    }
+  }, [rowSelection, bulkDeleteSignals]);
+
+  const handleSendMessage = useCallback(() => {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0 || !onSendMessage) return;
+
+    const selectedSignals = data.filter(signal => selectedIds.includes(signal.id));
+    onSendMessage(selectedSignals);
+  }, [rowSelection, data, onSendMessage]);
+
+  const handleViewDetails = useCallback((signalId: string) => {
+    // For now, just log the action - this could open a details modal
+    console.log('View details for signal:', signalId);
+    // TODO: Implement details modal
+  }, []);
+
+  const handleMarkAsProcessed = useCallback((signalId: string) => {
+    markSignalAsProcessed(signalId);
+  }, [markSignalAsProcessed]);
 
   const columns: ColumnDef<Signal>[] = useMemo(
     () => [
@@ -435,10 +461,12 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
                       <TrendingUp className="mr-2 h-4 w-4" />
                       Generate Outreach
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleViewDetails(signal.id)}>
+                      <User className="mr-2 h-4 w-4" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleMarkAsProcessed(signal.id)}>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
                       Mark as Processed
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -451,12 +479,13 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
         size: 80,
       },
     ],
-    [handleGenerateOutreach]
+    [handleGenerateOutreach, handleViewDetails, handleMarkAsProcessed]
   );
 
   const table = useReactTable({
     data,
     columns,
+    getRowId: (row) => row.id,
     onSortingChange: (updater) => {
       const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
       setSorting(newSorting);
@@ -521,6 +550,17 @@ export function VirtualizedSignalTable({ data }: DataTableProps) {
               <span className="text-sm text-blue-700 font-medium">
                 {Object.keys(rowSelection).length} selected
               </span>
+              {onSendMessage && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleSendMessage}
+                  className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                >
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Send Message
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
