@@ -5,10 +5,17 @@ import { Signal } from '@/types/signal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-  X, 
-  Send, 
-  Building2, 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Spinner } from '@/components/ui/shadcn-io/spinner';
+
+import {
+  X,
+  Send,
+  Building2,
   MessageSquare,
   Sparkles,
   CheckCircle,
@@ -18,7 +25,12 @@ import {
   Users,
   Mail
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, sleep } from '@/lib/utils';
+
+type SignalQueryResult = {
+  description: string;
+  title: string;
+}
 
 interface MessageModalProps {
   isOpen: boolean;
@@ -141,8 +153,13 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
   const [messageStatuses, setMessageStatuses] = useState<Record<string, 'pending' | 'sending' | 'sent' | 'error'>>({});
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const [query, setQuery] = useState('');
+  const [queryResult, setQueryResult] = useState<Map<Signal['id'], SignalQueryResult>>();
+
   const templates = MESSAGE_TEMPLATES[persona];
   const valueProposition = VALUE_PROPOSITIONS[persona];
+
+  const [fetchingQueryResponse, setFetchingQueryResponse] = useState(false);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -168,12 +185,12 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
         const company = firstSignal?.company || '{{company}}';
         const prospectName = firstSignal?.prospectName || '{{prospectName}}';
         const companySize = firstSignal?.companySize || '{{companySize}}';
-        
+
         const processedSubject = template.subject
           .replace('{{company}}', company)
           .replace('{{prospectName}}', prospectName)
           .replace('{{companySize}}', companySize);
-        
+
         const processedBody = template.body
           .replace(/{{company}}/g, company)
           .replace(/{{prospectName}}/g, prospectName)
@@ -189,7 +206,7 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
 
   const getSignalContext = (signal: Signal | undefined) => {
     if (!signal) return 'made recent changes';
-    
+
     switch (signal.signalType) {
       case 'hiring':
         return 'announced new hiring';
@@ -222,34 +239,34 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
     // Simulate sending messages with progress and engaging feedback
     for (let i = 0; i < selectedSignals.length; i++) {
       const signal = selectedSignals[i];
-      
+
       // Update current message status
       setCurrentMessageStatus(`Sending to ${signal.prospectName} at ${signal.company}...`);
-      
+
       // Mark as sending
       setMessageStatuses(prev => ({
         ...prev,
         [signal.id]: 'sending'
       }));
-      
+
       // Simulate different sending times based on signal urgency
       const baseDelay = signal.urgency === 'high' ? 800 : 1200;
       const randomDelay = Math.random() * 600;
       await new Promise(resolve => setTimeout(resolve, baseDelay + randomDelay));
-      
+
       // Mark as sent
       setMessageStatuses(prev => ({
         ...prev,
         [signal.id]: 'sent'
       }));
-      
+
       setSendProgress(((i + 1) / selectedSignals.length) * 100);
       setSentCount(i + 1);
     }
 
     // Show completion status
     setCurrentMessageStatus('All messages sent successfully! 🎉');
-    
+
     // Mark signals as processed
     console.log('Messages sent to:', selectedSignals.map(s => s.prospectName));
 
@@ -257,7 +274,7 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
     setShowSuccess(true);
     await new Promise(resolve => setTimeout(resolve, 3000));
     setIsSending(false);
-    
+
     // Close modal after showing success
     setTimeout(() => {
       onClose();
@@ -272,6 +289,24 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
       default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
+
+  const gotoBackendAndGiveMeResults = async () => {
+    setFetchingQueryResponse(true);
+    await sleep(4000);
+    setFetchingQueryResponse(false);
+  }
+
+  const handleQuery = async () => {
+    await gotoBackendAndGiveMeResults();
+    const res = new Map<Signal['id'], SignalQueryResult>();
+    selectedSignals.forEach(signal => {
+      res.set(signal.id, {
+        title: signal.title,
+        description: `${signal.prospectName} is currenlty working on ${signal.title} at ${signal.company}`
+      });
+    });
+    setQueryResult(res);
+  }
 
   if (!isOpen || selectedSignals.length === 0) return null;
 
@@ -291,7 +326,20 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
               </p>
             </div>
           </div>
+          <div className='flex items-center space-x-2'>
+            <Input
+              className='w-44'
+              onChange={(e) => {
+                setQuery(e.target.value);
+              }}
+            />
+            <Button
+              variant='outline'
+              onClick={handleQuery}
+            >Ask openfunnel</Button>
+          </div>
           <Button
+
             variant="ghost"
             size="sm"
             onClick={onClose}
@@ -359,8 +407,8 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
                             <Badge variant="outline" className="text-xs">
                               {signal.signalType}
                             </Badge>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className={cn(
                                 "text-xs",
                                 signal.urgency === 'high' && "bg-red-100 text-red-800",
@@ -371,6 +419,21 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
                               {signal.urgency}
                             </Badge>
                           </div>
+                          {/* query result block */}
+                          {(fetchingQueryResponse ? <Spinner /> : (
+                            <div className='mt-2'>
+                            <p className='text-sm text-gray-500'>
+                              <Tooltip>
+                                <TooltipTrigger className='bg-secondary p-2 rounded'>
+                                  <p className='text-sm text-gray-500'>{queryResult?.get(signal.id)?.title}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className='text-sm text-gray-500'>{queryResult?.get(signal.id)?.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </p>
+                          </div>
+                        ))}
                         </div>
                       </div>
                     </div>
@@ -444,14 +507,14 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
                     </div>
                     <span className="text-sm text-gray-500">{Math.round(sendProgress)}%</span>
                   </div>
-                  
+
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${sendProgress}%` }}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>{sentCount} of {selectedSignals.length} messages sent</span>
                     <div className="flex items-center space-x-1">
@@ -491,7 +554,7 @@ export function MessageModal({ isOpen, onClose, selectedSignals, persona }: Mess
                     <Button variant="outline" onClick={onClose}>
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleSend}
                       disabled={!subject.trim() || !body.trim()}
                       className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
